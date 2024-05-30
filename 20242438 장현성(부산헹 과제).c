@@ -2,59 +2,99 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define LEN_MIN 15   // ¿­Â÷ÀÇ ÃÖ¼Ò ±æÀÌ
-#define LEN_MAX 20   // ¿­Â÷ÀÇ ÃÖ´ë ±æÀÌ
-#define STM_MIN 0    // ¸¶µ¿¼® ÃÖ¼Ò Ã¼·Â
-#define STM_MAX 5    // ¸¶µ¿¼® ÃÖ´ë Ã¼·Â
-#define PROB_MIN 10  // È®·üÀÇ ÃÖ¼Ò°ª
-#define PROB_MAX 90  // È®·üÀÇ ÃÖ´ë°ª
+// ìƒìˆ˜ ì •ì˜
+#define LEN_MIN 15   // ì—´ì°¨ì˜ ìµœì†Œ ê¸¸ì´
+#define LEN_MAX 50   // ì—´ì°¨ì˜ ìµœëŒ€ ê¸¸ì´
+#define STM_MIN 0    // ë§ˆë™ì„ ìµœì†Œ ì²´ë ¥
+#define STM_MAX 5    // ë§ˆë™ì„ ìµœëŒ€ ì²´ë ¥
+#define PROB_MIN 10  // í™•ë¥ ì˜ ìµœì†Œê°’
+#define PROB_MAX 90  // í™•ë¥ ì˜ ìµœëŒ€ê°’
 
-#define AGGRO_DEFAULT 1  // ±âº» ¾î±×·Î °ª
-#define AGGRO_MAX 5      // ¾î±×·Î ÃÖ´ë°ª
-#define AGGRO_MIN 0      // ¾î±×·Î ÃÖ¼Ò°ª
+#define AGGRO_DEFAULT 1  // ê¸°ë³¸ ì–´ê·¸ë¡œ ê°’
+#define AGGRO_MAX 5      // ì–´ê·¸ë¡œ ìµœëŒ€ê°’
+#define AGGRO_MIN 0      // ì–´ê·¸ë¡œ ìµœì†Œê°’
 
-// ¸¶µ¿¼® ÀÌµ¿ ¹æÇâ
+// ë§ˆë™ì„ ì´ë™ ë°©í–¥
 #define MOVE_LEFT 1
 #define MOVE_STAY 0
 
-// ¸¶µ¿¼® Çàµ¿
+// ë§ˆë™ì„ í–‰ë™
 #define ACTION_REST 0
-#define ACTION_PROVO 1
+#define ACTION_PROVOKE 1
 #define ACTION_PULL 2
 
-// ½ºÅ×ÀÌÁö »óÅÂ
+// ì¢€ë¹„ ê³µê²© ëŒ€ìƒ
+#define ATK_NONE 0
+#define ATK_CITIZEN 1
+#define ATK_DONGSEOK 2
+
+// ìŠ¤í…Œì´ì§€ ìƒíƒœ
 #define STAGE_CLEAR 1
 #define STAGE_FAIL 0
 
-// ½Ã¹Î ¼ö
-#define NUM_CITIZENS_MIN 2
-#define NUM_CITIZENS_MAX 5
-
-int t_l, p_p, d_stamina, z_move, d_move;
-int turn = 0, dont_move = 0, z_stunned = 0;
+// ì „ì—­ ë³€ìˆ˜
+int t_l, p_p, d_stamina;
+int turn = 0, z_stunned = 0;
 int c_aggro = AGGRO_DEFAULT, d_aggro = AGGRO_DEFAULT;
+int c_pos, z_pos, d_pos, num_citizens;
 
-// ÀÔ·Â ÇÔ¼ö ¼öÁ¤
+// í•¨ìˆ˜ ì„ ì–¸
+int getInput(int min, int max, const char* prompt);
+void updateAggro(int* aggro, int change, int min, int max);
+void printTrain();
+void printStatus();
+void updateCitizens();
+int updateZombie();
+void updateDongseok();
+void madongseokAction();
+int playStage(int stage);
+
+// ë©”ì¸ í•¨ìˆ˜
+int main(void) {
+    srand((unsigned int)time(NULL));
+
+    // ì‚¬ìš©ì ì…ë ¥ ë°›ê¸°
+    t_l = getInput(LEN_MIN, LEN_MAX, "train length(15~50)>> ");
+    d_stamina = getInput(STM_MIN, STM_MAX, "madongseok stamina(0~5)>> ");
+    p_p = getInput(PROB_MIN, PROB_MAX, "percentile probability 'p'(10~90)>> ");
+
+    // ìŠ¤í…Œì´ì§€ ì‹œì‘
+    int stage_result = playStage(2);
+    if (stage_result == STAGE_CLEAR) {
+        printf("ìŠ¤í…Œì´ì§€ 2ë¥¼ í´ë¦¬ì–´í•˜ì—¬ ë‹¤ìŒ ìŠ¤í…Œì´ì§€ë¡œ ì§„í–‰í•©ë‹ˆë‹¤.\n");
+        // ë‹¤ìŒ ìŠ¤í…Œì´ì§€ ë¡œì§ êµ¬í˜„
+    }
+    else {
+        printf("ìŠ¤í…Œì´ì§€ 2ë¥¼ í´ë¦¬ì–´í•˜ì§€ ëª»í–ˆìŠµë‹ˆë‹¤. ê²Œì„ ì˜¤ë²„.\n");
+    }
+
+    return 0;
+}
+
+// ì‚¬ìš©ì ì…ë ¥ ë°›ê¸°
 int getInput(int min, int max, const char* prompt) {
     int value;
     while (1) {
         printf("%s", prompt);
-        scanf_s("%d", &value);
-        // ÀÔ·Â ¹üÀ§¸¦ ¹ş¾î³ª¸é ´Ù½Ã ÀÔ·Â ¿äÃ»
-        if (value >= min && value <= max) {
-            break;
+        if (scanf_s("%d", &value, sizeof(value)) == 1) {
+            if (value >= min && value <= max) {
+                break;
+            }
+            else {
+                printf("ì˜ëª»ëœ ì…ë ¥ì…ë‹ˆë‹¤. ë‹¤ì‹œ ì…ë ¥í•´ ì£¼ì„¸ìš”.\n");
+            }
         }
         else {
-            printf("Àß¸øµÈ ÀÔ·ÂÀÔ´Ï´Ù. ´Ù½Ã ÀÔ·ÂÇØ ÁÖ¼¼¿ä.\n");
+            printf("ì…ë ¥ ì˜¤ë¥˜ì…ë‹ˆë‹¤. ë‹¤ì‹œ ì…ë ¥í•´ ì£¼ì„¸ìš”.\n");
+            while (getchar() != '\n'); // ì…ë ¥ ë²„í¼ë¥¼ ë¹„ì›ë‹ˆë‹¤.
         }
     }
     return value;
 }
 
-// ¾î±×·Î¿Í Ã¼·Â °»½Å ÇÔ¼ö ¼öÁ¤
+// ì–´ê·¸ë¡œ ì—…ë°ì´íŠ¸
 void updateAggro(int* aggro, int change, int min, int max) {
     *aggro += change;
-    // ÃÖ¼Ú°ª°ú ÃÖ´ñ°ª ¹üÀ§ ³»¿¡¼­ À¯Áö
     if (*aggro > max) {
         *aggro = max;
     }
@@ -63,83 +103,106 @@ void updateAggro(int* aggro, int change, int min, int max) {
     }
 }
 
-void printTrain(int num_citizens) {
-    // ÄÚµå »ı·«
-}
-
-void printStatus(int num_citizens) {
-    // ÄÚµå »ı·«
-}
-
-void generateCitizens(int* num_citizens, int train_length) {
-    // ½Ã¹Î ¼ö¸¦ ¿­Â÷±æÀÌ/4¿¡¼­ ¿­Â÷±æÀÌ/2 »çÀÌÀÇ ·£´ı°ªÀ¸·Î ¼³Á¤
-    *num_citizens = rand() % (train_length / 2 - train_length / 4 + 1) + train_length / 4;
-}
-
-void updateCitizens() {
-    // ÄÚµå »ı·«
-}
-
-int updateZombie() {
-    // ÄÚµå »ı·«
-}
-
-int updateDongseok() {
-    // ÄÚµå »ı·«
-}
-
-int playStage(int stage) {
-    // ½Ã¹Î ¼ö¸¦ »ı¼º
-    int num_citizens;
-    generateCitizens(&num_citizens, t_l);
-
-    printf("½Ã¹Î ¼ö: %d\n", num_citizens);
-
-    // ½ºÅ×ÀÌÁöº° °ÔÀÓ ÁøÇà
-    while (1) {
-        turn++; // ÅÏ Áõ°¡
-        printf("\n½ºÅ×ÀÌÁö %d - %d ¹øÂ° ÅÏ\n", stage, turn);
-
-        // ½Ã¹Î ÀÌµ¿ ÆäÀÌÁî
-        updateCitizens();
-
-        // Á»ºñ Çàµ¿ ¹× °ø°İ Ã³¸®
-        int attack = updateZombie();
-        printf("Á»ºñ Çàµ¿ ¿Ï·á: À§Ä¡ %d\n", z_move);
-        if (attack) {
-            printf("Á»ºñ°¡ °ø°İÇß½À´Ï´Ù. ½ºÅ×ÀÌÁö ½ÇÆĞ.\n");
-            return STAGE_FAIL;
+// ì—´ì°¨ ìƒíƒœ ì¶œë ¥
+void printTrain() {
+    printf("###############\n");
+    for (int i = 0; i < t_l; i++) {
+        if (i == c_pos && i == z_pos && i == d_pos) {
+            printf("# C Z M #\n");
         }
-
-        // ¸¶µ¿¼® Çàµ¿
-        int pull_success = updateDongseok();
-        printf("¸¶µ¿¼® Çàµ¿ ¿Ï·á: À§Ä¡ %d (¾î±×·Î %d, ½ºÅÂ¹Ì³ª %d)\n", d_move, d_aggro, d_stamina);
-
-        // ¿­Â÷ »óÅÂ Ãâ·Â
-        printTrain(num_citizens);
-
-        // »óÅÂ Ãâ·Â
-        printStatus(num_citizens);
+        else if (i == c_pos && i == z_pos) {
+            printf("# C Z #\n");
+        }
+        else if (i == c_pos && i == d_pos) {
+            printf("# C M #\n");
+        }
+        else if (i == z_pos && i == d_pos) {
+            printf("# Z M #\n");
+        }
+        else if (i == c_pos) {
+            printf("# C #\n");
+        }
+        else if (i == z_pos) {
+            printf("# Z #\n");
+        }
+        else if (i == d_pos) {
+            printf("# M #\n");
+        }
+        else {
+            printf("# #\n");
+        }
     }
+    printf("###############\n");
 }
 
-int main(void) {
-    srand((unsigned int)time(NULL)); // ³­¼ö »ı¼º±â¸¦ ÃÊ±âÈ­
+// ìƒíƒœ ì¶œë ¥
+void printStatus() {
+    printf("citizen: %d (aggro: %d)\n", num_citizens, c_aggro);
+    printf("zombie: %d\n", z_pos);
+    printf("madongseok: %d (aggro: %d, stamina: %d)\n", d_pos, d_aggro, d_stamina);
+}
 
-    // °øÅëÀûÀÎ ÆÄ¶ó¹ÌÅÍ ÀÔ·Â
-    t_l = getInput(LEN_MIN, LEN_MAX, "train length(15~20)>> ");
-    p_p = getInput(PROB_MIN, PROB_MAX, "percentile probability 'p'(10~90)>> ");
-    d_stamina = getInput(STM_MIN, STM_MAX, "¸¶µ¿¼®ÀÇ Ã¼·Â(0~5)>> ");
-
-    // ½ºÅ×ÀÌÁö ÇÃ·¹ÀÌ
-    int stage_result = playStage(2);
-    if (stage_result == STAGE_CLEAR) {
-        printf("½ºÅ×ÀÌÁö 2¸¦ Å¬¸®¾îÇÏ¿© ´ÙÀ½ ½ºÅ×ÀÌÁö·Î ÁøÇàÇÕ´Ï´Ù.\n");
-        // ´ÙÀ½ ½ºÅ×ÀÌÁö ±¸Çö
+// ì‹œë¯¼ ì´ë™ ì—…ë°ì´íŠ¸
+void updateCitizens() {
+    int move_prob = rand() % 100;
+    if (move_prob < (100 - p_p)) {
+        c_pos--;
+        updateAggro(&c_aggro, 1, AGGRO_MIN, AGGRO_MAX);
     }
     else {
-        printf("½ºÅ×ÀÌÁö 2¸¦ Å¬¸®¾îÇÏÁö ¸øÇß½À´Ï´Ù. °ÔÀÓ ¿À¹ö.\n");
+        updateAggro(&c_aggro, -1, AGGRO_MIN, AGGRO_MAX);
+    }
+}
+
+// ì¢€ë¹„ ì—…ë°ì´íŠ¸
+int updateZombie() {
+    if (z_stunned) {
+        z_stunned = 0;
+        return z_pos;
     }
 
-    return 0;
+    if (turn % 2 == 1) {
+        if (z_pos == d_pos) {
+            return ATK_DONGSEOK;
+        }
+        else if (z_pos == c_pos) {
+            return ATK_CITIZEN;
+        }
+        else if (d_aggro > c_aggro) {
+            return z_pos + (z_pos < d_pos ? 1 : -1);
+        }
+        else {
+            return z_pos + (z_pos < c_pos ? 1 : -1);
+        }
+    }
+    return z_pos;
+}
+
+// ë§ˆë™ì„ ì´ë™ ì—…ë°ì´íŠ¸
+void updateDongseok() {
+    int move;
+    printf("madongseok move(0:stay, 1:left)>> ");
+    if (scanf_s("%d", &move, sizeof(move)) == 1) {
+        if (move == MOVE_LEFT) {
+            d_pos--;
+            if (d_pos < 0) d_pos = 0;
+            updateAggro(&d_aggro, 1, AGGRO_MIN, AGGRO_MAX);
+        }
+        else {
+            updateAggro(&d_aggro, -1, AGGRO_MIN, AGGRO_MAX);
+        }
+    }
+    else {
+        printf("ì…ë ¥ ì˜¤ë¥˜ì…ë‹ˆë‹¤. ë‹¤ì‹œ ì…ë ¥í•´ ì£¼ì„¸ìš”.\n");
+        while (getchar() != '\n'); // ì…ë ¥ ë²„í¼ë¥¼ ë¹„ì›ë‹ˆë‹¤.
+        updateDongseok(); // ì¬ê·€ì ìœ¼ë¡œ í˜¸ì¶œí•˜ì§€ ì•Šê³ , ë‹¨ìˆœíˆ í•¨ìˆ˜ë¥¼ ì¢…ë£Œí•©ë‹ˆë‹¤.
+    }
+}
+
+// ë§ˆë™ì„ í–‰ë™ ì—…ë°ì´íŠ¸
+void madongseokAction() {
+}
+
+// ìŠ¤í…Œì´ì§€ ì‹¤í–‰
+int playStage(int stage) {
 }
